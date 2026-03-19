@@ -1,25 +1,27 @@
 export const SITE = {
-  website: "https://astropages-bilingual.pages.dev", // replace this with your deployed domain
-  author: "tosaki",
-  profile: "https://t0saki.com",
-  desc: "A bilingual blog based on Astro Paper",
-  title: "AstroPaper Bilingual",
+  website: "https://blog.yfapi.tech", // 先用Cloudflare给你的地址，后面再换成域名
+  author: "Francisco",
+  profile: "https://github.com/Francisco2333",
+  desc: "Francisco 的个人博客",
+  title: "Francisco Blog",
   ogImage: "astropaper-og.jpg",
   lightAndDarkMode: true,
   postPerIndex: 4,
   postPerPage: 4,
-  scheduledPostMargin: 15 * 60 * 1000, // 15 minutes
+  scheduledPostMargin: 15 * 60 * 1000,
   showArchives: true,
-  showBackButton: true, // show back button in post detail
+  showBackButton: true,
+
   editPost: {
     enabled: true,
-    text: "Edit page",
-    url: "https://github.com/t0saki/AstroPages-Bilingual/edit/main/",
+    text: "Edit on GitHub",
+    url: "https://github.com/你的用户名/AstroPages-Bilingual/edit/main/",
   },
+
   dynamicOgImage: true,
-  dir: "ltr", // "rtl" | "auto"
-  lang: "en", // html lang code. Set this empty and default will be "en"
-  timezone: "Asia/Singapore", // Default global timezone (IANA format) https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  dir: "ltr",
+  lang: "zh", // 改成中文为主
+  timezone: "Asia/Shanghai", // 改成中国
 } as const;
 
 export const BLOG_PATH = "src/data/blog";
