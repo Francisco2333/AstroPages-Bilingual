@@ -15,7 +15,7 @@ export const SITE = {
   editPost: {
     enabled: true,
     text: "Edit on GitHub",
-    url: "https://github.com/你的用户名/AstroPages-Bilingual/edit/main/",
+    url: "https://github.com/Francisco2333/AstroPages-Bilingual/edit/main/",
   },
 
   dynamicOgImage: true,
