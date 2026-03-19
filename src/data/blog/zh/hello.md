@@ -1,17 +1,16 @@
 ---
 title: 欢迎使用 AstroPaper
-pubDatetime: 2026-01-11T00:00:00Z
+pubDatetime: 2026-01-11
 description: 这是一篇示例中文博客文章，用于演示双语博客系统。
-featured: true
 draft: false
+featured: true
 tags:
   - 欢迎
   - 介绍
 ---
-
 # 欢迎来到 AstroPaper 双语博客
 
-这是一个基于 Astro Paper 主题构建的双语博客系统。
+本项目是一个基于 Astro Paper 主题构建的双语博客系统。
 
 ## 主要特性
 
