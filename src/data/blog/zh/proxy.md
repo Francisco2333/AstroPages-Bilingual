@@ -52,6 +52,26 @@ LOG_FILE = HOME_DIR / 'mihomo.log'
 PID_FILE = HOME_DIR / 'mihomo.pid'
 SERVICE_NAME = 'mihomo'
 
+RELEASE_APIS = [
+    'https://gh.llkk.cc/https://api.github.com/repos/MetaCubeX/mihomo/releases/latest',
+    'https://ghps.cc/https://api.github.com/repos/MetaCubeX/mihomo/releases/latest',
+    'https://gh.sixyin.com/https://api.github.com/repos/MetaCubeX/mihomo/releases/latest',
+    'https://gitproxy.click/https://api.github.com/repos/MetaCubeX/mihomo/releases/latest',
+    'https://api.github.com/repos/MetaCubeX/mihomo/releases/latest',
+]
+
+DOWNLOAD_MIRRORS = [
+    'https://gh.llkk.cc/',
+    'https://ghps.cc/',
+    'https://gh.zwnes.xyz/',
+    'https://github.tmby.shop/',
+    'https://gitproxy.click/',
+    'https://gh.927223.xyz/',
+    'https://gh.felicity.ac.cn/',
+    'https://gh.sixyin.com/',
+    '',
+]
+
 
 def run(cmd, check=True, capture=False, env=None):
     p = subprocess.run(
@@ -194,37 +214,95 @@ def is_mihomo_installed():
     return p.returncode == 0
 
 
+def urlopen_with_retry(req, timeout=30, retries=3, sleep_sec=2):
+    last_err = None
+    for i in range(retries):
+        try:
+            return urllib.request.urlopen(req, timeout=timeout)
+        except Exception as e:
+            last_err = e
+            if i < retries - 1:
+                P.warn(f'请求失败，第 {i + 1} 次重试: {e}')
+                time.sleep(sleep_sec)
+    raise last_err
+
+
+def fetch_latest_release_data():
+    headers = {
+        'User-Agent': 'proxy-installer/1.0',
+        'Accept': 'application/vnd.github+json',
+    }
+
+    last_err = None
+    for api in RELEASE_APIS:
+        try:
+            P.info(f'尝试获取发行版信息: {api}')
+            req = urllib.request.Request(api, headers=headers)
+            with urlopen_with_retry(req, timeout=30, retries=2) as resp:
+                data = json.loads(resp.read().decode('utf-8', errors='ignore'))
+                if isinstance(data, dict) and data.get('assets'):
+                    return data
+                raise RuntimeError('返回内容中未找到 assets 字段')
+        except Exception as e:
+            last_err = e
+            P.warn(f'获取失败: {e}')
+    raise RuntimeError(f'所有发行版信息源均不可用: {last_err}')
+
+
 def download_file(url: str, dst: Path):
-    req = urllib.request.Request(url, headers={'User-Agent': 'proxy-installer/1.0'})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        total = int(resp.headers.get('Content-Length', '0') or '0')
-        with open(dst, 'wb') as f:
-            if TQDM and total > 0:
-                with TQDM(total=total, unit='B', unit_scale=True, desc='下载 mihomo') as bar:
-                    while True:
-                        chunk = resp.read(1024 * 128)
-                        if not chunk:
-                            break
-                        f.write(chunk)
-                        bar.update(len(chunk))
-            else:
-                while True:
-                    chunk = resp.read(1024 * 128)
-                    if not chunk:
-                        break
-                    f.write(chunk)
+    headers = {'User-Agent': 'proxy-installer/1.0'}
+
+    candidates = []
+    for mirror in DOWNLOAD_MIRRORS:
+        if mirror:
+            candidates.append(mirror + url)
+        else:
+            candidates.append(url)
+
+    last_err = None
+    for real_url in candidates:
+        try:
+            P.info(f'尝试下载: {real_url}')
+            req = urllib.request.Request(real_url, headers=headers)
+            with urlopen_with_retry(req, timeout=60, retries=2) as resp:
+                total = int(resp.headers.get('Content-Length', '0') or '0')
+                with open(dst, 'wb') as f:
+                    if TQDM and total > 0:
+                        with TQDM(total=total, unit='B', unit_scale=True, desc='下载 mihomo') as bar:
+                            while True:
+                                chunk = resp.read(1024 * 128)
+                                if not chunk:
+                                    break
+                                f.write(chunk)
+                                bar.update(len(chunk))
+                    else:
+                        while True:
+                            chunk = resp.read(1024 * 128)
+                            if not chunk:
+                                break
+                            f.write(chunk)
+                return
+        except Exception as e:
+            last_err = e
+            P.warn(f'下载失败: {e}')
+            try:
+                if dst.exists():
+                    dst.unlink()
+            except Exception:
+                pass
+
+    raise RuntimeError(f'所有下载镜像均失败: {last_err}')
 
 
 def install_mihomo_if_needed():
     if is_mihomo_installed():
         P.ok('检测到 mihomo 已安装，跳过重复下载。')
         return
+
     suffix = detect_asset_suffix()
-    api = 'https://api.github.com/repos/MetaCubeX/mihomo/releases/latest'
     P.info('获取最新 mihomo 发行版信息...')
-    req = urllib.request.Request(api, headers={'User-Agent': 'proxy-installer/1.0'})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = json.loads(resp.read().decode('utf-8', errors='ignore'))
+    data = fetch_latest_release_data()
+
     assets = data.get('assets', [])
     url = None
     for item in assets:
@@ -232,12 +310,19 @@ def install_mihomo_if_needed():
         if suffix in name and name.endswith('.gz'):
             url = item.get('browser_download_url')
             break
+
     if not url:
         raise RuntimeError(f'未找到适合当前架构的 mihomo 发行包: {suffix}')
+
     tmp_gz = Path('/tmp/mihomo.gz')
     tmp_bin = Path('/tmp/mihomo')
-    P.info(f'下载 mihomo: {url}')
+
+    P.info(f'已找到发行包: {url}')
     download_file(url, tmp_gz)
+
+    if tmp_bin.exists():
+        tmp_bin.unlink()
+
     run(['gunzip', '-f', str(tmp_gz)])
     run(['install', '-m', '0755', str(tmp_bin), str(MIHOMO_BIN)])
     P.ok(f'mihomo 已安装到 {MIHOMO_BIN}')
