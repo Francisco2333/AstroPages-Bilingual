@@ -100,11 +100,25 @@ git push
 # 命令查询
 
 ```bash
-## 查看当前配置
+查看当前 Git 配置：
 git config --list
-## 查看用户名及邮箱
+
+查看用户名和邮箱：
 git config user.name
 git config user.email
-## 查看全局配置
+
+查看全局配置：
 git config --global --list
+
+查看当前仓库状态：
+git status
+
+查看远程仓库地址：
+git remote -v
+
+查看当前分支：
+git branch
+
+查看提交记录：
+git log --oneline
 ```
